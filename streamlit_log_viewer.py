@@ -56,10 +56,13 @@ def load_data(uploaded_file):
     """Load and process the CSV data"""
     try:
         # Read CSV
-        df = pd.read_csv(uploaded_file)
+        df = pd.read_csv(uploaded_file, low_memory=False)
         
-        # Convert timestamp to datetime
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        # Convert timestamp to datetime, handle errors
+        try:
+            df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
+        except Exception as e:
+            st.warning(f"Warning: Could not parse timestamps properly: {str(e)}")
         
         # Convert boolean columns
         bool_columns = ['has_any_error', 'is_error_strict', 'is_warning', 'has_error', 
@@ -67,7 +70,10 @@ def load_data(uploaded_file):
         
         for col in bool_columns:
             if col in df.columns:
-                df[col] = df[col].astype(str).str.lower().isin(['true', '1', 'yes'])
+                try:
+                    df[col] = df[col].astype(str).str.lower().isin(['true', '1', 'yes'])
+                except Exception as e:
+                    st.warning(f"Warning: Could not process boolean column {col}: {str(e)}")
         
         return df
     except Exception as e:
@@ -134,7 +140,7 @@ def create_visualizations(df):
                     'DEBUG': '#6c757d'
                 }
             )
-            st.plotly_chart(fig_levels, use_container_width=True)
+            st.plotly_chart(fig_levels, width='stretch')
     
     with col2:
         if 'file_name' in df.columns:
@@ -148,7 +154,7 @@ def create_visualizations(df):
                 labels={'x': 'Entry Count', 'y': 'File Name'}
             )
             fig_files.update_layout(height=400)
-            st.plotly_chart(fig_files, use_container_width=True)
+            st.plotly_chart(fig_files, width='stretch')
     
     # Timeline of errors
     if 'timestamp' in df.columns and 'has_error' in df.columns:
@@ -157,7 +163,7 @@ def create_visualizations(df):
         # Group by hour and count errors
         df_errors = df[df['has_error'] == True].copy()
         if len(df_errors) > 0:
-            df_errors['hour'] = df_errors['timestamp'].dt.floor('H')
+            df_errors['hour'] = df_errors['timestamp'].dt.floor('h')
             hourly_errors = df_errors.groupby('hour').size().reset_index(name='error_count')
             
             fig_timeline = px.line(
@@ -168,7 +174,7 @@ def create_visualizations(df):
                 labels={'hour': 'Time', 'error_count': 'Error Count'}
             )
             fig_timeline.update_traces(line_color='#dc3545', line_width=3)
-            st.plotly_chart(fig_timeline, use_container_width=True)
+            st.plotly_chart(fig_timeline, width='stretch')
 
 def apply_filters(df):
     """Apply filters based on sidebar inputs"""
@@ -353,7 +359,7 @@ def main():
                     styled_df = style_dataframe(page_df)
                     st.dataframe(
                         styled_df,
-                        use_container_width=True,
+                        width='stretch',
                         hide_index=True
                     )
                     
