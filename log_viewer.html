@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Analyzer - Data Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .controls h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        select,
+        input[type="text"],
+        input[type="file"] {
+            padding: 8px 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        select:focus,
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-clear {
+            background: #6c757d;
+        }
+
+        .btn-clear:hover {
+            background: #5a6268;
+        }
+
+        .stats {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 0 15px;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .log-level {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .log-level.error {
+            background: #dc3545;
+            color: white;
+        }
+
+        .log-level.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .log-level.info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .log-level.debug {
+            background: #6c757d;
+            color: white;
+        }
+
+        .file-name {
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .message {
+            max-width: 400px;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            gap: 10px;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #e9ecef;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination .current-page {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .multi-select-container {
+            position: relative;
+            display: inline-block;
+            min-width: 200px;
+        }
+
+        .multi-select-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #e1e5e9;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .multi-select-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .multi-select-option:hover {
+            background: #f8f9fa;
+        }
+
+        .multi-select-option input {
+            margin-right: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🔍 Log Analyzer - Data Viewer</h1>
+        <p>Interactive log data exploration tool</p>
+    </div>
+
+    <div class="container">
+        <div class="controls">
+            <h3>📁 Load Data & Filters</h3>
+
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="csvFile">Select CSV File:</label>
+                    <input type="file" id="csvFile" accept=".csv" />
+                </div>
+                <div class="filter-group">
+                    <label for="searchText">Search Messages:</label>
+                    <input type="text" id="searchText" placeholder="Search in messages..." />
+                </div>
+            </div>
+
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="fileFilter">Filter by Files:</label>
+                    <div class="multi-select-container">
+                        <select id="fileFilter" multiple style="height: 120px;">
+                            <option value="">Loading files...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <label for="logLevelFilter">Log Level:</label>
+                    <select id="logLevelFilter">
+                        <option value="">All Levels</option>
+                        <option value="ERROR">Error</option>
+                        <option value="WARNING">Warning</option>
+                        <option value="INFO">Info</option>
+                        <option value="DEBUG">Debug</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="errorTypeFilter">Error Type:</label>
+                    <select id="errorTypeFilter">
+                        <option value="">All Types</option>
+                        <option value="true">Errors Only</option>
+                        <option value="false">Non-Errors Only</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="dateFromFilter">From Date:</label>
+                    <input type="datetime-local" id="dateFromFilter" />
+                </div>
+
+                <div class="filter-group">
+                    <label for="dateToFilter">To Date:</label>
+                    <input type="datetime-local" id="dateToFilter" />
+                </div>
+
+                <div class="filter-group"
+                    style="justify-content: flex-end; flex-direction: row; gap: 10px; align-items: flex-end;">
+                    <button class="btn" onclick="applyFilters()">Apply Filters</button>
+                    <button class="btn btn-clear" onclick="clearFilters()">Clear All</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat-item">
+                <div class="stat-number" id="totalEntries">0</div>
+                <div class="stat-label">Total Entries</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="errorCount">0</div>
+                <div class="stat-label">Errors</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="warningCount">0</div>
+                <div class="stat-label">Warnings</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="fileCount">0</div>
+                <div class="stat-label">Files</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div id="loadingMessage" class="loading">
+                📂 Please select a CSV file to begin analysis
+            </div>
+
+            <div id="tableContent" style="display: none;">
+                <div class="table-wrapper">
+                    <table id="dataTable">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Level</th>
+                                <th>File</th>
+                                <th>Message</th>
+                                <th>Error Categories</th>
+                                <th>Line #</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination" id="pagination">
+                    <button onclick="changePage(-1)">← Previous</button>
+                    <span id="pageInfo">Page 1 of 1</span>
+                    <button onclick="changePage(1)">Next →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        const rowsPerPage = 100;
+
+        // File input handler
+        document.getElementById('csvFile').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                loadCSV(file);
+            }
+        });
+
+        // Load and parse CSV file
+        function loadCSV(file) {
+            document.getElementById('loadingMessage').innerHTML = '⏳ Loading CSV file...';
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const csv = e.target.result;
+                    parseCSV(csv);
+                } catch (error) {
+                    showError('Error reading file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Parse CSV data
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+
+            allData = [];
+            const uniqueFiles = new Set();
+
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+
+                const values = parseCSVLine(lines[i]);
+                if (values.length === headers.length) {
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index];
+                    });
+
+                    // Process data
+                    row.timestamp = new Date(row.timestamp);
+                    row.has_error = row.has_error === 'True';
+                    row.is_error_strict = row.is_error_strict === 'True';
+                    row.is_warning = row.is_warning === 'True';
+
+                    allData.push(row);
+
+                    if (row.file_name) {
+                        uniqueFiles.add(row.file_name);
+                    }
+                }
+            }
+
+            // Populate file filter
+            populateFileFilter(Array.from(uniqueFiles).sort());
+
+            // Show data
+            filteredData = [...allData];
+            updateStats();
+            displayData();
+
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('tableContent').style.display = 'block';
+            document.getElementById('stats').style.display = 'flex';
+        }
+
+        // Parse CSV line handling quoted values
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+
+            result.push(current.trim());
+            return result;
+        }
+
+        // Populate file filter dropdown
+        function populateFileFilter(files) {
+            const select = document.getElementById('fileFilter');
+            select.innerHTML = '<option value="">All Files</option>';
+
+            files.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file;
+                option.textContent = file;
+                select.appendChild(option);
+            });
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const searchText = document.getElementById('searchText').value.toLowerCase();
+            const selectedFiles = Array.from(document.getElementById('fileFilter').selectedOptions).map(opt => opt.value);
+            const logLevel = document.getElementById('logLevelFilter').value;
+            const errorType = document.getElementById('errorTypeFilter').value;
+            const dateFrom = document.getElementById('dateFromFilter').value;
+            const dateTo = document.getElementById('dateToFilter').value;
+
+            filteredData = allData.filter(row => {
+                // Search filter
+                if (searchText && !row.message.toLowerCase().includes(searchText)) {
+                    return false;
+                }
+
+                // File filter
+                if (selectedFiles.length > 0 && !selectedFiles.includes('') && !selectedFiles.includes(row.file_name)) {
+                    return false;
+                }
+
+                // Log level filter
+                if (logLevel && row.log_level !== logLevel) {
+                    return false;
+                }
+
+                // Error type filter
+                if (errorType !== '') {
+                    const isError = errorType === 'true';
+                    if (row.has_error !== isError) {
+                        return false;
+                    }
+                }
+
+                // Date filters
+                if (dateFrom) {
+                    const fromDate = new Date(dateFrom);
+                    if (row.timestamp < fromDate) {
+                        return false;
+                    }
+                }
+
+                if (dateTo) {
+                    const toDate = new Date(dateTo);
+                    if (row.timestamp > toDate) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            currentPage = 1;
+            updateStats();
+            displayData();
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            document.getElementById('searchText').value = '';
+            document.getElementById('fileFilter').selectedIndex = 0;
+            document.getElementById('logLevelFilter').selectedIndex = 0;
+            document.getElementById('errorTypeFilter').selectedIndex = 0;
+            document.getElementById('dateFromFilter').value = '';
+            document.getElementById('dateToFilter').value = '';
+
+            filteredData = [...allData];
+            currentPage = 1;
+            updateStats();
+            displayData();
+        }
+
+        // Update statistics
+        function updateStats() {
+            const errorCount = filteredData.filter(row => row.has_error).length;
+            const warningCount = filteredData.filter(row => row.is_warning).length;
+            const uniqueFiles = new Set(filteredData.map(row => row.file_name)).size;
+
+            document.getElementById('totalEntries').textContent = filteredData.length.toLocaleString();
+            document.getElementById('errorCount').textContent = errorCount.toLocaleString();
+            document.getElementById('warningCount').textContent = warningCount.toLocaleString();
+            document.getElementById('fileCount').textContent = uniqueFiles;
+        }
+
+        // Display paginated data
+        function displayData() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = Math.min(startIndex + rowsPerPage, filteredData.length);
+            const pageData = filteredData.slice(startIndex, endIndex);
+
+            pageData.forEach(row => {
+                const tr = document.createElement('tr');
+
+                // Format timestamp
+                const timestamp = row.timestamp.toLocaleString();
+
+                // Format log level
+                const logLevel = row.log_level || 'INFO';
+                const logLevelClass = logLevel.toLowerCase();
+
+                // Format file name
+                const fileName = row.file_name || 'unknown';
+
+                // Format message (truncate if too long)
+                const message = row.message || '';
+                const truncatedMessage = message.length > 200 ? message.substring(0, 200) + '...' : message;
+
+                // Error categories
+                const errorCategories = row.error_categories || '';
+
+                // Line number
+                const lineNumber = row.line_number || '';
+
+                tr.innerHTML = `
+                    <td>${timestamp}</td>
+                    <td><span class="log-level ${logLevelClass}">${logLevel}</span></td>
+                    <td><span class="file-name">${fileName}</span></td>
+                    <td class="message" title="${message}">${truncatedMessage}</td>
+                    <td>${errorCategories}</td>
+                    <td>${lineNumber}</td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+
+            updatePagination();
+        }
+
+        // Update pagination
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages} (${filteredData.length} entries)`;
+
+            const pagination = document.getElementById('pagination');
+            const prevBtn = pagination.querySelector('button:first-child');
+            const nextBtn = pagination.querySelector('button:last-child');
+
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+        }
+
+        // Change page
+        function changePage(direction) {
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            const newPage = currentPage + direction;
+
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                displayData();
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+
+            const container = document.querySelector('.container');
+            container.insertBefore(errorDiv, container.firstChild);
+
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        // Add event listeners for real-time search
+        document.getElementById('searchText').addEventListener('input', function () {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(() => {
+                applyFilters();
+            }, 300);
+        });
+    </script>
+</body>
+
+</html>

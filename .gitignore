@@ -1,0 +1,35 @@
+# Large CSV files
+*.csv
+data.csv
+output/*.csv
+output/test_data_output/*.csv
+
+# Log files (too large for GitHub)
+logs/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
